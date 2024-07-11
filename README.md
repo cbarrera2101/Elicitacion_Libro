@@ -1,0 +1,1 @@
+El documento compartido contiene los códigos R de diferentes capítulos del texto "Técnicas de Elicitación de Información Personal para su Uso en Estadística Bayesiana". El usuario puede hacer uso de los códigos de cada uno de los ejemplos presentados y modificarlo en caso de que sea necesario.
