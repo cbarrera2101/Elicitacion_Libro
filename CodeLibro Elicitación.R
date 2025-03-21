@@ -55,8 +55,141 @@ densidad<-function(temp,marcaX='XXX',marcaY='YYY'){
 densidad(temp,marcaX='Cantidad',marcaY='Densidad')
 
 ######################################
+## Capítulo 4
+######################################
+## 1)
+# Ingreso promedio de un taxista
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+
+# Parámetros de los modelos gamma ajustados
+parametros <- data.frame(
+  alpha = c(3805, 8331, 8047, 6383, 15771, 13621, 8446, 5040, 2285, 2446, 2249, 1784),
+  beta  = c(27, 64, 62, 44, 118, 116, 64, 44, 21, 22, 18, 15)
+)
+
+# Generar datos de densidad gamma para cada modelo
+theta_vals <- seq(100, 160, length.out = 1000)  # Rango del eje X
+densidades <- data.frame(theta = rep(theta_vals, 12), grupo = rep(1:12, each = 1000))
+
+densidades$density <- unlist(
+  lapply(1:12, function(i) dgamma(theta_vals, shape = parametros$alpha[i], rate = parametros$beta[i]))
+)
+
+# Calcular la distribución a priori según la fórmula dada (mezcla de distribuciones gamma)
+priori_mixta <- rowMeans(matrix(densidades$density, nrow = 1000, byrow = FALSE))
+densidades_prior <- data.frame(theta = theta_vals, density = priori_mixta)
+
+# Calcular la distribución apriori basada en la media geométrica de los parámetros
+alpha_geom <- exp(mean(log(parametros$alpha)))
+beta_geom <- exp(mean(log(parametros$beta)))
+densidad_geom <- dgamma(theta_vals, shape = alpha_geom, rate = beta_geom)
+densidades_geom <- data.frame(theta = theta_vals, density = densidad_geom)
+
+# Gráfico con ggplot2
+ggplot() +
+  geom_line(data = densidades, aes(x = theta, y = density, group = grupo), color = "gray", alpha = 0.3) +
+  geom_line(data = densidades_prior, aes(x = theta, y = density), color = "black", linetype = "dashed") +
+  geom_line(data = densidades_geom, aes(x = theta, y = density), color = "black", linetype = "solid") +
+  labs(x = "Producido bruto medio", y = "Densidad") +
+  theme_minimal() +
+  theme(plot.title = element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5)) 
+
+## 2)
+# Ejemplo distribuciones elicitadas de la edad de
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Simulación de datos elicitados para replicar el gráfico
+set.seed(123)
+edad_vals <- seq(20, 40, length.out = 500)
+num_grupos <- 12  # Número de distribuciones
+
+densidades <- data.frame(
+  edad = rep(edad_vals, num_grupos),
+  grupo = rep(1:num_grupos, each = length(edad_vals))
+)
+
+# Generar densidades simuladas con variabilidad
+densidades$density <- unlist(
+  lapply(1:num_grupos, function(i) dnorm(edad_vals, mean = sample(25:35, 1), sd = runif(1, 2, 5)))
+)
+
+# Gráfico con ggplot2
+ggplot(densidades, aes(x = edad, y = density, group = grupo, color = as.factor(grupo), linetype = as.factor(grupo))) +
+  geom_line(alpha = 0.7, size = 0.8) +
+  scale_color_manual(values = rainbow(num_grupos)) +  # Colores variados
+  labs(x = "Edad (en años)", y = "Densidad", title = "Distribuciones elicitadas") +
+  theme_minimal() +
+  theme(legend.position = "none",  # Ocultar leyenda
+        axis.text.y = element_text(angle = 90, hjust = 0.5),  
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+## Gráfica de clúster para las curvas elicitadas
+# Cargar librerías necesarias
+# Cargar librerías necesarias
+library(ggplot2)
+library(dendextend)
+library(ggdendro)
+
+# Simulación de datos de distancias entre las distribuciones elicitadas
+set.seed(123)
+dist_matrix <- matrix(runif(12 * 12, min = 0, max = 1), nrow = 12)
+dist_matrix <- (dist_matrix + t(dist_matrix)) / 2  # Hacerla simétrica
+diag(dist_matrix) <- 0  # Diagonal en 0
+
+# Convertir la matriz en objeto de distancia
+dist_obj <- as.dist(dist_matrix)
+
+# Realizar el clustering jerárquico
+hc <- hclust(dist_obj, method = "complete")
+
+# Convertir en dendrograma y personalizar etiquetas
+dend <- as.dendrogram(hc)
+labels(dend) <- paste0("E", 1:12)  # Asignar nombres personalizados
+
+dendro_data <- dendro_data(dend)  # Convertir en datos compatibles con ggplot
+
+# Graficar con ggplot2
+ggplot() +
+  geom_segment(data = segment(dendro_data), aes(x = x, y = y, xend = xend, yend = yend), color = "black") +
+  geom_text(data = label(dendro_data), aes(x = x, y = y, label = label), hjust = 1, angle = 90, size = 3) +  # Tamaño reducido
+  labs(title = "Agrupaciones de elicitadores", x = "Expertos", y = "Distancias") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.y = element_text(angle = 90, hjust = 0.5))
+
+######################################
 ## Capítulo 5
 ######################################
+## 1)
+# Distribución personal
+library(ggplot2)
+
+# Parámetros de la distribución Beta
+alpha <- 0.5716812 
+beta <- 1.0503667
+
+# Generar valores de pi en el rango de interés
+pi_vals <- seq(0, 0.05, length.out = 500)
+
+# Calcular la densidad de la distribución Beta
+densidad <- dbeta(pi_vals, shape1 = alpha, shape2 = beta)
+
+datos <- data.frame(pi = pi_vals, density = densidad)
+
+# Crear el gráfico
+ggplot(datos, aes(x = pi, y = density)) +
+  geom_line(color = "black", size = 1) +
+  labs(x = expression(pi), y = expression(f(pi)), title = "Distribución personal") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.y = element_text(angle = 90, hjust = 0.5))
+       
 ## 3)
 # Función auxiliar que dada una probabilidad nos da el percentil
 x.s<-function(y.s,x1,x2,p1,p2){
@@ -65,7 +198,7 @@ x.s<-function(y.s,x1,x2,p1,p2){
   return(xx)
 }
 
-# Distribución Apriori Simulada
+# Distribución a priori simulada
 dist.apriori.sim<-function(x.s,p.s,Nsim=1000,n.equ=10,funcion='mean'){
   simulados<-NULL
   y<-sort(runif(Nsim*n.equ))
@@ -79,7 +212,7 @@ dist.apriori.sim<-function(x.s,p.s,Nsim=1000,n.equ=10,funcion='mean'){
   simulados<-matrix(sample(simulados),ncol=n.equ)
   resu<-apply(simulados,1,FUN=funcion)
   
-  plot(density(resu),main='Distribución Apriori Simulada',ylab='Densidad')
+  plot(density(resu),main='Distribución a priori simulada',ylab='Densidad')
   return(resu)
 }# fin dist.apriori.sim
 
@@ -188,7 +321,7 @@ media.sin<-media.sin[-1]
 plot(medias,error,xlab=expression(lambda),ylab='Error')
 title(main='Error que se comete con el truncamiento \n 
 en la estimación de la media')
-plot(acumulado,error)
+plot(acumulado,error,xlab='Acumulado',ylab='Error')
 
 ## 7)
 calcula.lambda<-function(proba){
@@ -206,7 +339,7 @@ temp<-scan()
 res.multi<-rmultinom(2000,1000,temp)/1000
 lambdas<-apply(res.multi,2,calcula.lambda)
 hist(lambdas,freq=F,xlab=expression(lambda),
-     main='Distribución Apriori',ylab='Frecuencia')
+     main='Distribución a priori',ylab='Frecuencia')
 summary(lambdas)
 fitdistr(lambdas,'gamma')
 
@@ -218,9 +351,9 @@ y2<-dnorm(x,mean=170,sd=7.307592/sqrt(20))
 plot(x,y,type='l',ylab='Densidad',xlab='Estatura (en cm)',
      ylim=c(0,0.3))
 points(x,y2,type='l',lty=2)
-title(main='Distribución Apriori del Promedio')
-legend(160,0.31,c('Dist. Poblacional Elicitada',
-                  'Dist. Apriori de la Media'),
+title(main='Distribución a priori del promedio')
+legend(160,0.31,c('Distribución poblacional elicitada',
+                  'Distribución a priori de la media'),
        lty=c(1,2))
 
 ## 9)
@@ -314,7 +447,7 @@ Altura<-Area/base
 plot(1,1,ylim=c(0,max(Altura)*1.3),xlim=c(0,1),type='n',
      ylab='',xlab='')
 title(ylab='Densidad',xlab=substitute(pi))
-title(main='Distribución Subjetiva sobre Médicos Alcohólicos')
+title(main='Distribución subjetiva sobre médicos alcohólicos')
 for(i in 1:length(Altura)){
   rect(temp[i,2],0,temp[i+1,2],Altura[i],col='grey')
 }
@@ -442,6 +575,30 @@ Construye.Apriori.Normal.IC<-function(LI,LS,n,nivel){
 
 Construye.Apriori.Normal.IC(10,20,20,0.95)
 
+## Gráfica de la a priori estimadalibrary(ggplot2)
+# Parámetros de la distribución Beta
+alpha_0 <- 45.87
+beta_0 <- 371.13
+
+# Generar valores de pi en el rango de interés
+pi_vals <- seq(0, 0.2, length.out = 500)
+# Calcular la densidad de la distribución Beta
+densidad <- dbeta(pi_vals, shape1 = alpha_0, shape2 = beta_0)
+datos <- data.frame(pi = pi_vals, density = densidad)
+# Calcular el intervalo de credibilidad al 95%
+cred_interval <- qbeta(c(0.025, 0.975), shape1 = alpha_0, shape2 = beta_0)
+
+# Crear el gráfico
+ggplot(datos, aes(x = pi, y = density)) +
+  geom_line(color = "black", size = 1) +
+  geom_vline(xintercept = cred_interval, linetype = "dashed", color = "red", size = 1) +
+  labs(x = expression(pi), y = "Densidad", title = "Distribución a priori estimada") +
+  annotate("text", x = cred_interval[1], y = max(densidad) * 0.9, label = "LI 95%", color = "red", hjust = 1.2) +
+  annotate("text", x = cred_interval[2], y = max(densidad) * 0.9, label = "LS 95%", color = "red", hjust = -0.2) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.y = element_text(angle = 90, hjust = 0.5))
+       
 ## 15)
 puntos<-c(800,780,600,500,490,200,150,100)
 puestos<-order(puntos,decreasing=T)
@@ -555,30 +712,58 @@ colMeans(t(resu))
 cov(t(resu))
 
 ######################################
+## Capítulo 7
+######################################
+library(meta)
+library(ggplot2)
+
+# Datos
+proporciones <- c(0.7090, 0.8074, 0.6707, 0.6667, 0.6912, 0.8548, 0.9245, 0.6286, 0.8333, 1.0000, 
+                  0.9688, 0.0333, 0.3000, 0.4800, 0.7000, 0.5556, 1.0000, 0.4400, 0.6122, 0.9738, 0.6901)
+se <- c(0.0289, 0.0345, 0.0378, 0.0470, 0.0589, 0.0482, 0.0392, 0.0862, 0.0418, 0.0472, 
+        0.0291, 0.0258, 0.0587, 0.0724, 0.0504, 0.1157, 0.0608, 0.0731, 0.0704, 0.0046, 0.0180)
+# Transformación logit
+logit_proporciones <- log(proporciones / (1 - proporciones))
+datos <- data.frame(logit_proporciones, se)
+
+# Crear el gráfico
+ggplot(datos, aes(x = logit_proporciones, y = se)) +
+  geom_point(color = "black", size = 2) +
+  geom_vline(xintercept = 0, linetype = "dotted", color = "black", size = 0.8) +
+  geom_abline(intercept = max(se), slope = -max(se) / max(abs(logit_proporciones)), linetype = "dashed", color = "black") +
+  geom_abline(intercept = max(se), slope = max(se) / max(abs(logit_proporciones)), linetype = "dashed", color = "black") +
+  labs(x = "Proporción transformada con logit", y = "Error estándar", title = "") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+       
+######################################
 ## Capítulo 8
 ######################################
 ## 18)
 # Simulación de la Distribución Predictiva
-# Nro. promedio de goles del campeonato colombiano
-# Apriori: Normal(2.5, 0.20^2)
+# Número promedio de goles del campeonato colombiano
+# A priori: Normal(2.5, 0.20^2)
 # Dist. muestral: Poisson(theta)
 
-dist.predictiva<-function(Nsim=10000,media=2.5,dt=0.20){
-  res<-rpois(Nsim,rnorm(Nsim,mean=media,sd=dt))
-  tabla<-table(res)
-  print(tabla/sum(tabla))
+dist.predictiva <- function(Nsim = 10000, media = 2.5, dt = 0.20) {
+  res <- rpois(Nsim, rnorm(Nsim, mean = media, sd = dt))
+  tabla <- table(res)
+  print(tabla / sum(tabla))
   barplot(tabla)
   print(summary(res))
   print(var(res))
 }
 
 dist.predictiva()
-title(main='Distribución Predictiva\n Campeonato Colombiano',
-      xlab='Número de Goles',
-      ylab='Frecuencia')
-legend(7,2000,c('Media apriori=2.5','Desv. Est. apriori=0.20'))
+title(main = 'Distribución predictiva\n para el campeonato colombiano',
+      xlab = 'Número de goles',
+      ylab = 'Frecuencia')
 
-res
+# Agregar la leyenda con texto más pequeño y sin recuadro
+legend(5, 2000, 
+       legend = c('Media a priori = 2.5', 'Desviación estándar a priori = 0.20'),
+       cex = 0.8, bty = "n")  
+
 
 ######################################
 ## Capítulo 9
